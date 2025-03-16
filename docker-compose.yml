@@ -1,0 +1,40 @@
+services:
+  # Backend ASP.NET Core
+  backend:
+    build:
+      context: ./CinephoriaServer
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000" 
+      - "5001:5001" 
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Database=ProdTestDb;Username=prodUser;Password=MonMotDePasse;
+    depends_on:
+      - db
+
+  # Frontend Angular
+  frontend:
+    build:
+      context: ./WebApp
+      dockerfile: Dockerfile
+    ports:
+      - "80:80" # Nginx sert sur le port 80
+    depends_on:
+      - backend
+
+  # Base de données PostgreSQL
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: ProdTestDb
+      POSTGRES_USER: prodUser
+      POSTGRES_PASSWORD: MonMotDePasse
+    ports:
+      - "5432:5432" # Port PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Volume pour persister les données
+
+volumes:
+  postgres_data: # Déclaration du volume pour PostgreSQL
