@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main # Déclencher le pipeline uniquement sur la branche main
+  pull_request:
+    branches:
+      - main # Optionnel : déclencher des builds lors d'une PR vers main
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout du code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Backend ASP.NET Core
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0
+
+      - name: Restore backend dependencies
+        run: cd Backend && dotnet restore
+
+      - name: Build backend
+        run: cd Backend && dotnet build --configuration Release
+
+      # Frontend Angular
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install frontend dependencies
+        run: cd Frontend && npm install
+
+      - name: Build frontend
+        run: cd Frontend && npm run build --configuration=production
+
+      # Se connecter à Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN}}
+
+      # Build et push de l'image Docker pour le backend
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Backend
+          file: ./Backend/Dockerfile
+          push: true
+          tags: your-dockerhub-username/backend:latest
+
+      # Build et push de l'image Docker pour le frontend
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./Frontend
+          file: ./Frontend/Dockerfile
+          push: true
+          tags: your-dockerhub-username/frontend:latest
